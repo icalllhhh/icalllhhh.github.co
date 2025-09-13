@@ -1,45 +1,258 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Metal Vibes</title>
-  <link href="https://fonts.googleapis.com/css2?family=Metal+Mania&display=swap" rel="stylesheet">
+  <title>Sound System Online</title>
   <style>
+    /* Background animasi gradasi */
     body {
       margin: 0;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #000000, #1a1a1a, #3b0000);
-      background-size: 300% 300%;
-      animation: bgMove 6s infinite alternate;
-      color: #ff0000;
-      font-family: 'Metal Mania', cursive;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(-45deg, #0f0f0f, #1c1c1c, #232526, #414345);
+      background-size: 400% 400%;
+      animation: gradientBG 12s ease infinite;
+      color: #eee;
+      text-align: center;
+    }
+    @keyframes gradientBG {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
     }
 
     h1 {
-      font-size: 8rem;
-      letter-spacing: 8px;
-      text-shadow: 0 0 15px #ff0000, 0 0 30px #ff3333, 0 0 60px #660000;
-      animation: pulse 1.5s infinite alternate;
+      margin-top: 20px;
+      font-size: 2.5em;
+      color: #00ffe7;
+      text-shadow: 0 0 15px #00ffe7, 0 0 30px #0077ff;
     }
 
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 0.9; }
-      100% { transform: scale(1.1); opacity: 1; }
+    /* Kotak player */
+    #player {
+      margin: 20px auto;
+      width: 560px;
+      height: 315px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 25px rgba(0,255,231,0.6);
     }
 
-    @keyframes bgMove {
-      0% { background-position: left; }
-      100% { background-position: right; }
+    /* Kontrol */
+    .controls {
+      margin: 30px auto;
+      background: rgba(20,20,20,0.9);
+      padding: 25px;
+      border-radius: 20px;
+      display: inline-block;
+      box-shadow: 0 0 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(0,255,231,0.2);
+      text-align: left;
+    }
+    .controls h3 {
+      text-align: center;
+      margin-bottom: 15px;
+      color: #00ffe7;
+    }
+
+    /* Input link */
+    .urlBox {
+      margin-bottom: 20px;
+    }
+    input[type=text] {
+      width: 340px;
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      background: #111;
+      color: #fff;
+      box-shadow: inset 0 0 10px rgba(0,255,231,0.3);
+    }
+    button {
+      margin-left: 10px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 12px;
+      background: #00ffe7;
+      color: #111;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #0077ff;
+      color: white;
+      box-shadow: 0 0 15px #00ffe7;
+    }
+
+    /* Slider neon */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 300px;
+      height: 6px;
+      border-radius: 5px;
+      background: #333;
+      outline: none;
+      margin: 10px 0;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ffe7;
+      box-shadow: 0 0 15px #00ffe7, 0 0 30px #0077ff;
+      cursor: pointer;
+    }
+
+    /* Dropdown */
+    select {
+      padding: 8px 12px;
+      border-radius: 12px;
+      border: none;
+      background: #111;
+      color: #fff;
+      box-shadow: inset 0 0 10px rgba(0,255,231,0.3);
+      cursor: pointer;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0;
+      font-size: 14px;
+      color: #ddd;
+    }
+
+    /* Checkbox efek */
+    input[type=checkbox] {
+      transform: scale(1.2);
+      margin-right: 8px;
     }
   </style>
 </head>
 <body>
-  <h1>FUCK YOU</h1>
-</body>
-</html>    </footer>
+  <h1>🎶 Sound System Online 🎶</h1>
 
+  <div class="urlBox">
+    <input type="text" id="ytLink" placeholder="Tempel link YouTube di sini...">
+    <button onclick="loadVideo()">▶ Play</button>
+  </div>
+
+  <div id="player"></div>
+
+  <div class="controls">
+    <h3>Equalizer</h3>
+    <label>Bass <input type="range" id="eq1" min="-30" max="30" value="0"></label>
+    <label>Low-Mid <input type="range" id="eq2" min="-30" max="30" value="0"></label>
+    <label>Mid <input type="range" id="eq3" min="-30" max="30" value="0"></label>
+    <label>High-Mid <input type="range" id="eq4" min="-30" max="30" value="0"></label>
+    <label>Treble <input type="range" id="eq5" min="-30" max="30" value="0"></label>
+
+    <h3>Preset</h3>
+    <select id="preset" onchange="setPreset(this.value)">
+      <option value="flat">Flat</option>
+      <option value="rock">Rock</option>
+      <option value="pop">Pop</option>
+      <option value="jazz">Jazz</option>
+    </select>
+
+    <h3>Efek Tambahan</h3>
+    <label><input type="checkbox" id="reverb" onchange="toggleReverb()"> Reverb / Echo</label>
+  </div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    let player, audioCtx, source;
+    let filters = [], gainNode, convolver;
+    let isReverbOn = false;
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        height: '315',
+        width: '560',
+        videoId: '5qap5aO4i9A', // default: Lofi
+        events: { 'onReady': initAudio }
+      });
+    }
+
+    function initAudio() {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const iframe = player.getIframe();
+      const mediaElement = new Audio();
+      mediaElement.src = iframe.src;
+      source = audioCtx.createMediaElementSource(mediaElement);
+
+      // 5 Band EQ
+      const freqs = [60, 250, 1000, 4000, 10000];
+      freqs.forEach(f => {
+        let filter = audioCtx.createBiquadFilter();
+        filter.type = "peaking";
+        filter.frequency.value = f;
+        filter.Q.value = 1;
+        filter.gain.value = 0;
+        filters.push(filter);
+      });
+
+      gainNode = audioCtx.createGain();
+      convolver = audioCtx.createConvolver();
+      convolver.buffer = createImpulseResponse(audioCtx, 2, 2.0);
+
+      source.connect(filters[0]);
+      filters.reduce((prev, curr) => prev.connect(curr));
+      filters[filters.length - 1].connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      filters.forEach((f, i) => {
+        document.getElementById("eq" + (i+1)).oninput = e => {
+          f.gain.value = e.target.value;
+        };
+      });
+    }
+
+    function loadVideo() {
+      let url = document.getElementById("ytLink").value;
+      let videoId = url.split("v=")[1]?.split("&")[0];
+      if (videoId) player.loadVideoById(videoId);
+      else alert("Link tidak valid!");
+    }
+
+    function setPreset(preset) {
+      let values = {
+        flat: [0,0,0,0,0],
+        rock: [8,4,0,4,8],
+        pop: [6,3,2,3,6],
+        jazz: [5,2,4,2,5]
+      };
+      filters.forEach((f,i) => {
+        f.gain.value = values[preset][i];
+        document.getElementById("eq"+(i+1)).value = values[preset][i];
+      });
+    }
+
+    function toggleReverb() {
+      isReverbOn = !isReverbOn;
+      if (isReverbOn) {
+        filters[filters.length - 1].disconnect();
+        filters[filters.length - 1].connect(convolver);
+        convolver.connect(gainNode);
+      } else {
+        filters[filters.length - 1].disconnect();
+        filters[filters.length - 1].connect(gainNode);
+      }
+    }
+
+    function createImpulseResponse(audioCtx, duration, decay) {
+      let sampleRate = audioCtx.sampleRate;
+      let length = sampleRate * duration;
+      let impulse = audioCtx.createBuffer(2, length, sampleRate);
+      for (let i = 0; i < 2; i++) {
+        let channel = impulse.getChannelData(i);
+        for (let j = 0; j < length; j++) {
+          channel[j] = (Math.random() * 2 - 1) * Math.pow(1 - j/length, decay);
+        }
+      }
+      return impulse;
+    }
+  </script>
 </body>
-</html> 
+</html>
