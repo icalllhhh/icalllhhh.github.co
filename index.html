@@ -2,238 +2,87 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Konversi Suara HP Jadul</title>
+  <title>Video + Suara HP Jadul</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #111;
-      color: #eee;
-      padding: 40px;
-    }
-    input, select, button {
-      margin: 10px;
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: none;
-    }
-    button {
-      background: #0077ff;
-      color: white;
-      cursor: pointer;
-    }
-    button:disabled {
-      background: gray;
-      cursor: not-allowed;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; background: #111; color: #eee; padding: 40px; }
+    input, select, button { margin: 10px; padding: 10px; font-size: 16px; border-radius: 8px; border: none; }
+    button { background: #0077ff; color: white; cursor: pointer; }
+    button:disabled { background: gray; cursor: not-allowed; }
   </style>
 </head>
 <body>
-  <h1>🎥 Konversi Suara Video Jadi HP Jadul</h1>
-  <p>Upload video ➝ pilih preset ➝ proses ➝ dengar ➝ download.</p>
-
+  <h1>🎥 Konversi Video + Suara Jadi Efek Jadul</h1>
   <input type="file" id="videoInput" accept="video/*"><br>
-  <video id="videoPlayer" controls style="max-width:80%; display:none;"></video><br>
-
-  <label for="preset">🎛 Pilih Efek:</label>
   <select id="preset">
     <option value="nokia">📱 Nokia</option>
     <option value="radio">📻 Radio</option>
     <option value="broken">☎️ Telepon Rusak</option>
+    <option value="proklamasi">🎙️ Mic Proklamasi</option>
   </select><br>
+  <button id="processBtn" disabled>🔊 Proses Video</button>
+  <button id="downloadBtn" disabled>⬇️ Download Video</button><br>
+  <video id="videoPlayer" controls style="max-width:80%;"></video>
 
-  <button id="processBtn" disabled>🔊 Proses Suara</button>
-  <button id="downloadBtn" disabled>⬇️ Download Audio</button><br>
-
-  <audio id="audioPlayer" controls></audio>
-
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.2/dist/ffmpeg.min.js"></script>
   <script>
-    let audioBlob;
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+    let processedBlob = null;
 
     document.getElementById("videoInput").addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const url = URL.createObjectURL(file);
-        const video = document.getElementById("videoPlayer");
-        video.src = url;
-        video.style.display = "block";
+      if (e.target.files.length > 0) {
         document.getElementById("processBtn").disabled = false;
       }
     });
 
     document.getElementById("processBtn").addEventListener("click", async () => {
       const file = document.getElementById("videoInput").files[0];
-      if (!file) return;
+      const preset = document.getElementById("preset").value;
 
-      let arrayBuffer = await file.arrayBuffer();
-      let audioCtx = new AudioContext();
-      let sourceBuffer = await audioCtx.decodeAudioData(arrayBuffer).catch(() => null);
-
-      if (!sourceBuffer) {
-        alert("⚠️ Browser tidak bisa langsung decode video. Coba format MP4/MOV kecil.");
-        return;
+      if (!ffmpeg.isLoaded()) {
+        await ffmpeg.load();
       }
 
-      let offlineCtx = new OfflineAudioContext(
-        sourceBuffer.numberOfChannels,
-        sourceBuffer.length,
-        sourceBuffer.sampleRate
+      ffmpeg.FS("writeFile", "input.mp4", await fetchFile(file));
+
+      // Tentukan filter sesuai preset
+      let filter = "";
+      if (preset === "nokia") {
+        filter = "lowpass=f=3000,aresample=8000";
+      } else if (preset === "radio") {
+        filter = "bandpass=f=2000:width_type=h:width=3500,aresample=8000";
+      } else if (preset === "broken") {
+        filter = "lowpass=f=2000,acrusher=bits=6:mix=0.5";
+      } else if (preset === "proklamasi") {
+        // Mic tua: bandpass sempit + distorsi + noise tipis
+        filter = "highpass=f=300,lowpass=f=3000,acrusher=bits=7:mix=0.3,anlmdn=s=0.002";
+      }
+
+      await ffmpeg.run(
+        "-i", "input.mp4",
+        "-vf", "scale=iw:ih", 
+        "-af", filter,
+        "output.mp4"
       );
 
-      let source = offlineCtx.createBufferSource();
-      source.buffer = sourceBuffer;
+      const data = ffmpeg.FS("readFile", "output.mp4");
+      processedBlob = new Blob([data.buffer], { type: "video/mp4" });
+      const url = URL.createObjectURL(processedBlob);
 
-      // Pilih preset
-      let preset = document.getElementById("preset").value;
-      let nodeChain = [];
+      const player = document.getElementById("videoPlayer");
+      player.src = url;
 
-      if (preset === "nokia") {
-        let lowpass = offlineCtx.createBiquadFilter();
-        lowpass.type = "lowpass";
-        lowpass.frequency.value = 3000;
-
-        let bitcrusher = offlineCtx.createWaveShaper();
-        bitcrusher.curve = makeCrusher(6); // 6-bit
-
-        nodeChain = [lowpass, bitcrusher];
-      } 
-      else if (preset === "radio") {
-        let bandpass = offlineCtx.createBiquadFilter();
-        bandpass.type = "bandpass";
-        bandpass.frequency.value = 2000;
-        bandpass.Q.value = 1.5;
-
-        let gainNoise = offlineCtx.createGain();
-        gainNoise.gain.value = 0.02;
-        let noise = offlineCtx.createBufferSource();
-        let bufferSize = 2 * offlineCtx.sampleRate;
-        let noiseBuffer = offlineCtx.createBuffer(1, bufferSize, offlineCtx.sampleRate);
-        let output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          output[i] = Math.random() * 2 - 1;
-        }
-        noise.buffer = noiseBuffer;
-        noise.loop = true;
-        noise.start();
-
-        noise.connect(gainNoise).connect(offlineCtx.destination);
-
-        nodeChain = [bandpass];
-      } 
-      else if (preset === "broken") {
-        let lowpass = offlineCtx.createBiquadFilter();
-        lowpass.type = "lowpass";
-        lowpass.frequency.value = 2000;
-
-        let distortion = offlineCtx.createWaveShaper();
-        distortion.curve = makeDistortionCurve(50);
-
-        nodeChain = [lowpass, distortion];
-      }
-
-      // Routing
-      let lastNode = source;
-      nodeChain.forEach(node => {
-        lastNode.connect(node);
-        lastNode = node;
-      });
-      lastNode.connect(offlineCtx.destination);
-      source.start();
-
-      let rendered = await offlineCtx.startRendering();
-
-      // Simpan ke Blob
-      let wavBuffer = audioBufferToWav(rendered);
-      audioBlob = new Blob([wavBuffer], { type: "audio/wav" });
-      let audioURL = URL.createObjectURL(audioBlob);
-      document.getElementById("audioPlayer").src = audioURL;
       document.getElementById("downloadBtn").disabled = false;
     });
 
     document.getElementById("downloadBtn").addEventListener("click", () => {
-      if (audioBlob) {
-        let a = document.createElement("a");
-        a.href = URL.createObjectURL(audioBlob);
-        a.download = "suara_hp_jadul.wav";
+      if (processedBlob) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(processedBlob);
+        a.download = "video_jadul.mp4";
         a.click();
       }
     });
-
-    // Helpers
-    function makeCrusher(bits) {
-      let samples = 44100;
-      let curve = new Float32Array(samples);
-      let step = Math.pow(0.5, bits - 1);
-      for (let i = 0; i < samples; i++) {
-        let x = (i * 2 / samples) - 1;
-        curve[i] = step * Math.floor(x / step + 0.5);
-      }
-      return curve;
-    }
-
-    function makeDistortionCurve(amount) {
-      let n_samples = 44100;
-      let curve = new Float32Array(n_samples);
-      let deg = Math.PI / 180;
-      for (let i = 0; i < n_samples; ++i) {
-        let x = (i * 2) / n_samples - 1;
-        curve[i] = (3 + amount) * x * 20 * deg / (Math.PI + amount * Math.abs(x));
-      }
-      return curve;
-    }
-
-    function audioBufferToWav(buffer) {
-      let numOfChan = buffer.numberOfChannels,
-          length = buffer.length * numOfChan * 2 + 44,
-          bufferArray = new ArrayBuffer(length),
-          view = new DataView(bufferArray),
-          channels = [],
-          i, sample,
-          offset = 0,
-          pos = 0;
-
-      setUint32(0x46464952); // "RIFF"
-      setUint32(length - 8);
-      setUint32(0x45564157); // "WAVE"
-
-      setUint32(0x20746d66); // "fmt "
-      setUint32(16);
-      setUint16(1);
-      setUint16(numOfChan);
-      setUint32(buffer.sampleRate);
-      setUint32(buffer.sampleRate * 2 * numOfChan);
-      setUint16(numOfChan * 2);
-      setUint16(16);
-
-      setUint32(0x61746164); // "data"
-      setUint32(length - pos - 4);
-
-      for (i = 0; i < buffer.numberOfChannels; i++)
-        channels.push(buffer.getChannelData(i));
-
-      while (pos < length) {
-        for (i = 0; i < numOfChan; i++) {
-          sample = Math.max(-1, Math.min(1, channels[i][offset]));
-          sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767);
-          view.setInt16(pos, sample | 0, true);
-          pos += 2;
-        }
-        offset++;
-      }
-
-      return bufferArray;
-
-      function setUint16(data) {
-        view.setUint16(pos, data, true);
-        pos += 2;
-      }
-
-      function setUint32(data) {
-        view.setUint32(pos, data, true);
-        pos += 4;
-      }
-    }
   </script>
 </body>
 </html>
