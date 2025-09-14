@@ -2,39 +2,118 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Video + Suara HP Jadul</title>
+  <title>Konversi Suara HP Jadul</title>
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; background: #111; color: #eee; padding: 40px; }
-    input, select, button { margin: 10px; padding: 10px; font-size: 16px; border-radius: 8px; border: none; }
-    button { background: #0077ff; color: white; cursor: pointer; }
-    button:disabled { background: gray; cursor: not-allowed; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #111;
+      color: #eee;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      background: #222;
+      border-radius: 12px;
+    }
+    video {
+      width: 100%;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+    select, button {
+      padding: 10px;
+      margin: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+    button {
+      cursor: pointer;
+      background: #00b894;
+      color: white;
+      font-weight: bold;
+    }
+    button:disabled {
+      background: gray;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
-  <h1>🎥 Konversi Video + Suara Jadi Efek Jadul</h1>
-  <input type="file" id="videoInput" accept="video/*"><br>
-  <select id="preset">
-    <option value="nokia">📱 Nokia</option>
-    <option value="radio">📻 Radio</option>
-    <option value="broken">☎️ Telepon Rusak</option>
-    <option value="proklamasi">🎙️ Mic Proklamasi</option>
-  </select><br>
-  <button id="processBtn" disabled>🔊 Proses Video</button>
-  <button id="downloadBtn" disabled>⬇️ Download Video</button><br>
-  <video id="videoPlayer" controls style="max-width:80%;"></video>
+  <div class="container">
+    <h2>🎙️ Konversi Suara ke Efek Jadul</h2>
+    <input type="file" id="videoInput" accept="video/*"><br>
+    <video id="preview" controls></video><br>
 
-  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.2/dist/ffmpeg.min.js"></script>
+    <label>Pilih Efek:</label>
+    <select id="preset">
+      <option value="nokia">📱 HP Jadul Nokia</option>
+      <option value="proklamasi">📢 Mic Proklamasi</option>
+      <option value="rusak">☎️ Telepon Rusak</option>
+    </select><br>
+
+    <button id="processBtn" disabled>🔄 Proses & Download</button>
+    <p id="status"></p>
+  </div>
+
   <script>
     const { createFFmpeg, fetchFile } = FFmpeg;
     const ffmpeg = createFFmpeg({ log: true });
-    let processedBlob = null;
+    const videoInput = document.getElementById("videoInput");
+    const preview = document.getElementById("preview");
+    const processBtn = document.getElementById("processBtn");
+    const status = document.getElementById("status");
 
-    document.getElementById("videoInput").addEventListener("change", (e) => {
-      if (e.target.files.length > 0) {
-        document.getElementById("processBtn").disabled = false;
-      }
+    let videoFile;
+
+    videoInput.addEventListener("change", (e) => {
+      videoFile = e.target.files[0];
+      preview.src = URL.createObjectURL(videoFile);
+      processBtn.disabled = false;
     });
 
+    processBtn.addEventListener("click", async () => {
+      if (!videoFile) return;
+      status.innerText = "⏳ Sedang memuat ffmpeg...";
+      if (!ffmpeg.isLoaded()) await ffmpeg.load();
+
+      ffmpeg.FS("writeFile", "input.mp4", await fetchFile(videoFile));
+
+      const preset = document.getElementById("preset").value;
+      let filter = "";
+
+      if (preset === "nokia") {
+        filter = "aresample=8000,asetrate=8000";
+      } else if (preset === "proklamasi") {
+        filter = "aecho=0.8:0.9:1000:0.3,highpass=f=300,lowpass=f=3000";
+      } else if (preset === "rusak") {
+        filter = "aresample=6000,asetrate=6000,acrusher=1:1:64:0:log,anoisesrc=d=10:a=0.1";
+      }
+
+      status.innerText = "🎛️ Sedang memproses...";
+      await ffmpeg.run(
+        "-i", "input.mp4",
+        "-af", filter,
+        "output.mp4"
+      );
+
+      const data = ffmpeg.FS("readFile", "output.mp4");
+      const url = URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" }));
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "hasil_konversi.mp4";
+      a.click();
+
+      status.innerText = "✅ Selesai! File sudah di-download.";
+    });
+  </script>
+</body>
+</html>
     document.getElementById("processBtn").addEventListener("click", async () => {
       const file = document.getElementById("videoInput").files[0];
       const preset = document.getElementById("preset").value;
