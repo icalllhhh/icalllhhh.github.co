@@ -2,241 +2,237 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Sound System Online</title>
+  <title>Konversi Suara HP Jadul</title>
   <style>
     body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(-45deg, #0f0f0f, #1c1c1c, #232526, #414345);
-      background-size: 400% 400%;
-      animation: gradientBG 12s ease infinite;
-      color: #eee;
+      font-family: Arial, sans-serif;
       text-align: center;
-    }
-    @keyframes gradientBG {
-      0% {background-position: 0% 50%;}
-      50% {background-position: 100% 50%;}
-      100% {background-position: 0% 50%;}
-    }
-    h1 {
-      margin-top: 20px;
-      font-size: 2.2em;
-      color: #00ffe7;
-      text-shadow: 0 0 15px #00ffe7, 0 0 30px #0077ff;
-    }
-    #player {
-      margin: 20px auto;
-      width: 560px;
-      height: 315px;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 0 25px rgba(0,255,231,0.6);
-    }
-    .controls {
-      margin: 30px auto;
-      background: rgba(20,20,20,0.9);
-      padding: 25px;
-      border-radius: 20px;
-      display: inline-block;
-      box-shadow: 0 0 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(0,255,231,0.2);
-      text-align: left;
-    }
-    .controls h3 {
-      text-align: center;
-      margin-bottom: 15px;
-      color: #00ffe7;
-    }
-    .urlBox { margin-bottom: 20px; }
-    input[type=text] {
-      width: 340px;
-      padding: 10px;
-      border-radius: 12px;
-      border: none;
-      outline: none;
-      font-size: 14px;
       background: #111;
-      color: #fff;
-      box-shadow: inset 0 0 10px rgba(0,255,231,0.3);
+      color: #eee;
+      padding: 40px;
+    }
+    input, select, button {
+      margin: 10px;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
     }
     button {
-      margin-left: 10px;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 12px;
-      background: #00ffe7;
-      color: #111;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    button:hover {
       background: #0077ff;
       color: white;
-      box-shadow: 0 0 15px #00ffe7;
-    }
-    input[type=range] {
-      -webkit-appearance: none;
-      width: 300px;
-      height: 6px;
-      border-radius: 5px;
-      background: #333;
-      outline: none;
-      margin: 10px 0;
-    }
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #00ffe7;
-      box-shadow: 0 0 15px #00ffe7, 0 0 30px #0077ff;
       cursor: pointer;
     }
-    select {
-      padding: 8px 12px;
-      border-radius: 12px;
-      border: none;
-      background: #111;
-      color: #fff;
-      box-shadow: inset 0 0 10px rgba(0,255,231,0.3);
-      cursor: pointer;
-    }
-    label {
-      display: block;
-      margin: 10px 0;
-      font-size: 14px;
-      color: #ddd;
-    }
-    input[type=checkbox] {
-      transform: scale(1.2);
-      margin-right: 8px;
+    button:disabled {
+      background: gray;
+      cursor: not-allowed;
     }
   </style>
 </head>
 <body>
-  <h1>🎶 Sound System Online 🎶</h1>
+  <h1>🎥 Konversi Suara Video Jadi HP Jadul</h1>
+  <p>Upload video ➝ pilih preset ➝ proses ➝ dengar ➝ download.</p>
 
-  <div class="urlBox">
-    <input type="text" id="ytLink" 
-           value="https://www.youtube.com/watch?v=5qap5aO4i9A" 
-           placeholder="Tempel link YouTube di sini...">
-    <button onclick="loadVideo()">▶ Play</button>
-  </div>
+  <input type="file" id="videoInput" accept="video/*"><br>
+  <video id="videoPlayer" controls style="max-width:80%; display:none;"></video><br>
 
-  <div id="player"></div>
+  <label for="preset">🎛 Pilih Efek:</label>
+  <select id="preset">
+    <option value="nokia">📱 Nokia</option>
+    <option value="radio">📻 Radio</option>
+    <option value="broken">☎️ Telepon Rusak</option>
+  </select><br>
 
-  <div class="controls">
-    <h3>Equalizer</h3>
-    <label>Bass <input type="range" id="eq1" min="-30" max="30" value="0"></label>
-    <label>Low-Mid <input type="range" id="eq2" min="-30" max="30" value="0"></label>
-    <label>Mid <input type="range" id="eq3" min="-30" max="30" value="0"></label>
-    <label>High-Mid <input type="range" id="eq4" min="-30" max="30" value="0"></label>
-    <label>Treble <input type="range" id="eq5" min="-30" max="30" value="0"></label>
+  <button id="processBtn" disabled>🔊 Proses Suara</button>
+  <button id="downloadBtn" disabled>⬇️ Download Audio</button><br>
 
-    <h3>Preset</h3>
-    <select id="preset" onchange="setPreset(this.value)">
-      <option value="flat">Flat</option>
-      <option value="rock">Rock</option>
-      <option value="pop">Pop</option>
-      <option value="jazz">Jazz</option>
-    </select>
+  <audio id="audioPlayer" controls></audio>
 
-    <h3>Efek Tambahan</h3>
-    <label><input type="checkbox" id="reverb" onchange="toggleReverb()"> Reverb / Echo</label>
-  </div>
-
-  <script src="https://www.youtube.com/iframe_api"></script>
   <script>
-    let player, audioCtx, source, filters = [], gainNode, convolver;
-    let isReverbOn = false;
+    let audioBlob;
 
-    function onYouTubeIframeAPIReady() {
-      player = new YT.Player('player', {
-        height: '315',
-        width: '560',
-        videoId: '5qap5aO4i9A', // default contoh link Lofi Girl
-        events: { 'onReady': setupAudio }
-      });
-    }
-
-    function setupAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const videoElement = player.getIframe();
-      const audioElement = new Audio(videoElement.src);
-      audioElement.crossOrigin = "anonymous";
-      source = audioCtx.createMediaElementSource(audioElement);
-
-      const freqs = [60, 250, 1000, 4000, 10000];
-      freqs.forEach(f => {
-        let filter = audioCtx.createBiquadFilter();
-        filter.type = "peaking";
-        filter.frequency.value = f;
-        filter.Q.value = 1;
-        filter.gain.value = 0;
-        filters.push(filter);
-      });
-
-      gainNode = audioCtx.createGain();
-      convolver = audioCtx.createConvolver();
-      convolver.buffer = createImpulseResponse(audioCtx, 2, 2.0);
-
-      source.connect(filters[0]);
-      filters.reduce((prev, curr) => prev.connect(curr));
-      filters[filters.length - 1].connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      filters.forEach((f, i) => {
-        document.getElementById("eq" + (i+1)).oninput = e => {
-          f.gain.value = e.target.value;
-        };
-      });
-
-      audioElement.play();
-    }
-
-    function loadVideo() {
-      let url = document.getElementById("ytLink").value;
-      let videoId = url.split("v=")[1]?.split("&")[0];
-      if (videoId) player.loadVideoById(videoId);
-      else alert("Link tidak valid!");
-    }
-
-    function setPreset(preset) {
-      let values = {
-        flat: [0,0,0,0,0],
-        rock: [8,4,0,4,8],
-        pop: [6,3,2,3,6],
-        jazz: [5,2,4,2,5]
-      };
-      filters.forEach((f,i) => {
-        f.gain.value = values[preset][i];
-        document.getElementById("eq"+(i+1)).value = values[preset][i];
-      });
-    }
-
-    function toggleReverb() {
-      isReverbOn = !isReverbOn;
-      if (isReverbOn) {
-        filters[filters.length - 1].disconnect();
-        filters[filters.length - 1].connect(convolver);
-        convolver.connect(gainNode);
-      } else {
-        filters[filters.length - 1].disconnect();
-        filters[filters.length - 1].connect(gainNode);
+    document.getElementById("videoInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        const video = document.getElementById("videoPlayer");
+        video.src = url;
+        video.style.display = "block";
+        document.getElementById("processBtn").disabled = false;
       }
-    }
+    });
 
-    function createImpulseResponse(audioCtx, duration, decay) {
-      let sampleRate = audioCtx.sampleRate;
-      let length = sampleRate * duration;
-      let impulse = audioCtx.createBuffer(2, length, sampleRate);
-      for (let i = 0; i < 2; i++) {
-        let channel = impulse.getChannelData(i);
-        for (let j = 0; j < length; j++) {
-          channel[j] = (Math.random() * 2 - 1) * Math.pow(1 - j/length, decay);
+    document.getElementById("processBtn").addEventListener("click", async () => {
+      const file = document.getElementById("videoInput").files[0];
+      if (!file) return;
+
+      let arrayBuffer = await file.arrayBuffer();
+      let audioCtx = new AudioContext();
+      let sourceBuffer = await audioCtx.decodeAudioData(arrayBuffer).catch(() => null);
+
+      if (!sourceBuffer) {
+        alert("⚠️ Browser tidak bisa langsung decode video. Coba format MP4/MOV kecil.");
+        return;
+      }
+
+      let offlineCtx = new OfflineAudioContext(
+        sourceBuffer.numberOfChannels,
+        sourceBuffer.length,
+        sourceBuffer.sampleRate
+      );
+
+      let source = offlineCtx.createBufferSource();
+      source.buffer = sourceBuffer;
+
+      // Pilih preset
+      let preset = document.getElementById("preset").value;
+      let nodeChain = [];
+
+      if (preset === "nokia") {
+        let lowpass = offlineCtx.createBiquadFilter();
+        lowpass.type = "lowpass";
+        lowpass.frequency.value = 3000;
+
+        let bitcrusher = offlineCtx.createWaveShaper();
+        bitcrusher.curve = makeCrusher(6); // 6-bit
+
+        nodeChain = [lowpass, bitcrusher];
+      } 
+      else if (preset === "radio") {
+        let bandpass = offlineCtx.createBiquadFilter();
+        bandpass.type = "bandpass";
+        bandpass.frequency.value = 2000;
+        bandpass.Q.value = 1.5;
+
+        let gainNoise = offlineCtx.createGain();
+        gainNoise.gain.value = 0.02;
+        let noise = offlineCtx.createBufferSource();
+        let bufferSize = 2 * offlineCtx.sampleRate;
+        let noiseBuffer = offlineCtx.createBuffer(1, bufferSize, offlineCtx.sampleRate);
+        let output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
         }
+        noise.buffer = noiseBuffer;
+        noise.loop = true;
+        noise.start();
+
+        noise.connect(gainNoise).connect(offlineCtx.destination);
+
+        nodeChain = [bandpass];
+      } 
+      else if (preset === "broken") {
+        let lowpass = offlineCtx.createBiquadFilter();
+        lowpass.type = "lowpass";
+        lowpass.frequency.value = 2000;
+
+        let distortion = offlineCtx.createWaveShaper();
+        distortion.curve = makeDistortionCurve(50);
+
+        nodeChain = [lowpass, distortion];
       }
-      return impulse;
+
+      // Routing
+      let lastNode = source;
+      nodeChain.forEach(node => {
+        lastNode.connect(node);
+        lastNode = node;
+      });
+      lastNode.connect(offlineCtx.destination);
+      source.start();
+
+      let rendered = await offlineCtx.startRendering();
+
+      // Simpan ke Blob
+      let wavBuffer = audioBufferToWav(rendered);
+      audioBlob = new Blob([wavBuffer], { type: "audio/wav" });
+      let audioURL = URL.createObjectURL(audioBlob);
+      document.getElementById("audioPlayer").src = audioURL;
+      document.getElementById("downloadBtn").disabled = false;
+    });
+
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      if (audioBlob) {
+        let a = document.createElement("a");
+        a.href = URL.createObjectURL(audioBlob);
+        a.download = "suara_hp_jadul.wav";
+        a.click();
+      }
+    });
+
+    // Helpers
+    function makeCrusher(bits) {
+      let samples = 44100;
+      let curve = new Float32Array(samples);
+      let step = Math.pow(0.5, bits - 1);
+      for (let i = 0; i < samples; i++) {
+        let x = (i * 2 / samples) - 1;
+        curve[i] = step * Math.floor(x / step + 0.5);
+      }
+      return curve;
+    }
+
+    function makeDistortionCurve(amount) {
+      let n_samples = 44100;
+      let curve = new Float32Array(n_samples);
+      let deg = Math.PI / 180;
+      for (let i = 0; i < n_samples; ++i) {
+        let x = (i * 2) / n_samples - 1;
+        curve[i] = (3 + amount) * x * 20 * deg / (Math.PI + amount * Math.abs(x));
+      }
+      return curve;
+    }
+
+    function audioBufferToWav(buffer) {
+      let numOfChan = buffer.numberOfChannels,
+          length = buffer.length * numOfChan * 2 + 44,
+          bufferArray = new ArrayBuffer(length),
+          view = new DataView(bufferArray),
+          channels = [],
+          i, sample,
+          offset = 0,
+          pos = 0;
+
+      setUint32(0x46464952); // "RIFF"
+      setUint32(length - 8);
+      setUint32(0x45564157); // "WAVE"
+
+      setUint32(0x20746d66); // "fmt "
+      setUint32(16);
+      setUint16(1);
+      setUint16(numOfChan);
+      setUint32(buffer.sampleRate);
+      setUint32(buffer.sampleRate * 2 * numOfChan);
+      setUint16(numOfChan * 2);
+      setUint16(16);
+
+      setUint32(0x61746164); // "data"
+      setUint32(length - pos - 4);
+
+      for (i = 0; i < buffer.numberOfChannels; i++)
+        channels.push(buffer.getChannelData(i));
+
+      while (pos < length) {
+        for (i = 0; i < numOfChan; i++) {
+          sample = Math.max(-1, Math.min(1, channels[i][offset]));
+          sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767);
+          view.setInt16(pos, sample | 0, true);
+          pos += 2;
+        }
+        offset++;
+      }
+
+      return bufferArray;
+
+      function setUint16(data) {
+        view.setUint16(pos, data, true);
+        pos += 2;
+      }
+
+      function setUint32(data) {
+        view.setUint32(pos, data, true);
+        pos += 4;
+      }
     }
   </script>
 </body>
