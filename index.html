@@ -1,116 +1,84 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Konversi Suara HP Jadul</title>
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-      background: #111;
-      color: #eee;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      padding: 20px;
-      background: #222;
-      border-radius: 12px;
-    }
-    video {
-      width: 100%;
-      border-radius: 10px;
-      margin-bottom: 15px;
-    }
-    select, button {
-      padding: 10px;
-      margin: 10px;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-    }
-    button {
-      cursor: pointer;
-      background: #00b894;
-      color: white;
-      font-weight: bold;
-    }
-    button:disabled {
-      background: gray;
-      cursor: not-allowed;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video ke Suara Efek Jadul</title>
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.0/dist/ffmpeg.min.js"></script>
+<style>
+  body { font-family: Arial; text-align: center; padding: 20px; background: #f0f0f0; }
+  video { width: 80%; margin: 10px 0; }
+  select, button { padding: 10px; margin: 5px; font-size: 16px; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h2>🎙️ Konversi Suara ke Efek Jadul</h2>
-    <input type="file" id="videoInput" accept="video/*"><br>
-    <video id="preview" controls></video><br>
 
-    <label>Pilih Efek:</label>
-    <select id="preset">
-      <option value="nokia">📱 HP Jadul Nokia</option>
-      <option value="proklamasi">📢 Mic Proklamasi</option>
-      <option value="rusak">☎️ Telepon Rusak</option>
-    </select><br>
+<h1>Konversi Video dengan Efek Suara Jadul</h1>
+<input type="file" id="videoInput" accept="video/*"><br>
+<select id="preset">
+  <option value="nokia">HP Nokia</option>
+  <option value="proklamasi">Telepon Jadul Smooth</option>
+  <option value="rusak">Telepon Rusak / Glitch</option>
+</select><br>
+<button id="processBtn" disabled>Proses & Download</button>
+<p id="status"></p>
+<video id="preview" controls></video>
 
-    <button id="processBtn" disabled>🔄 Proses & Download</button>
-    <p id="status"></p>
-  </div>
+<script>
+const { createFFmpeg, fetchFile } = FFmpeg;
+const ffmpeg = createFFmpeg({ log: true });
+const videoInput = document.getElementById("videoInput");
+const preview = document.getElementById("preview");
+const processBtn = document.getElementById("processBtn");
+const status = document.getElementById("status");
 
-  <script>
-    const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: true });
-    const videoInput = document.getElementById("videoInput");
-    const preview = document.getElementById("preview");
-    const processBtn = document.getElementById("processBtn");
-    const status = document.getElementById("status");
+let videoFile;
 
-    let videoFile;
+videoInput.addEventListener("change", (e) => {
+  videoFile = e.target.files[0];
+  preview.src = URL.createObjectURL(videoFile);
+  processBtn.disabled = false;
+});
 
-    videoInput.addEventListener("change", (e) => {
-      videoFile = e.target.files[0];
-      preview.src = URL.createObjectURL(videoFile);
-      processBtn.disabled = false;
-    });
+processBtn.addEventListener("click", async () => {
+  if (!videoFile) return;
+  status.innerText = "⏳ Sedang memuat ffmpeg...";
+  if (!ffmpeg.isLoaded()) await ffmpeg.load();
 
-    processBtn.addEventListener("click", async () => {
-      if (!videoFile) return;
-      status.innerText = "⏳ Sedang memuat ffmpeg...";
-      if (!ffmpeg.isLoaded()) await ffmpeg.load();
+  ffmpeg.FS("writeFile", "input.mp4", await fetchFile(videoFile));
 
-      ffmpeg.FS("writeFile", "input.mp4", await fetchFile(videoFile));
+  const preset = document.getElementById("preset").value;
+  let filter = "";
 
-      const preset = document.getElementById("preset").value;
-      let filter = "";
+  if (preset === "nokia") {
+    // Suara narrowband seperti HP Nokia jadul
+    filter = "aresample=8000,asetrate=8000";
+  } else if (preset === "proklamasi") {
+    // Telepon jadul 90-an smooth
+    filter = "aecho=0.8:0.9:1000:0.3,highpass=f=300,lowpass=f=3000";
+  } else if (preset === "rusak") {
+    // Telepon rusak / glitch
+    filter = "aresample=6000,asetrate=6000,acrusher=1:1:64:0:log,anoisesrc=d=10:a=0.1";
+  }
 
-      if (preset === "nokia") {
-        filter = "aresample=8000,asetrate=8000";
-      } else if (preset === "proklamasi") {
-        filter = "aecho=0.8:0.9:1000:0.3,highpass=f=300,lowpass=f=3000";
-      } else if (preset === "rusak") {
-        filter = "aresample=6000,asetrate=6000,acrusher=1:1:64:0:log,anoisesrc=d=10:a=0.1";
-      }
+  status.innerText = "🎛️ Sedang memproses video...";
+  await ffmpeg.run(
+    "-i", "input.mp4",
+    "-af", filter,
+    "output.mp4"
+  );
 
-      status.innerText = "🎛️ Sedang memproses...";
-      await ffmpeg.run(
-        "-i", "input.mp4",
-        "-af", filter,
-        "output.mp4"
-      );
+  const data = ffmpeg.FS("readFile", "output.mp4");
+  const url = URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" }));
 
-      const data = ffmpeg.FS("readFile", "output.mp4");
-      const url = URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "hasil_konversi.mp4";
+  a.click();
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "hasil_konversi.mp4";
-      a.click();
+  status.innerText = "✅ Selesai! File sudah di-download.";
+});
+</script>
 
-      status.innerText = "✅ Selesai! File sudah di-download.";
-    });
-  </script>
 </body>
 </html>
